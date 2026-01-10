@@ -21,7 +21,7 @@ func Log(text string) {
 	defer file.Close()
 	//Text formatting
 	layout := "02.01.2006 15:04"
-	text = time.Now().Format(layout) + "  |  " + text
+	text = time.Now().Format(layout) + "  |  " + text + "\n"
 	//Log entry
 	_, err = file.WriteString(text)
 	if err != nil {
