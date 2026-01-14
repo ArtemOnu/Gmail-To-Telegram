@@ -5,6 +5,7 @@ import (
 	Config "gomod/internal/config"
 	Logger "gomod/internal/entities"
 	tgbot "gomod/internal/use-cases"
+	imap "gomod/internal/use-cases/mailbox"
 )
 
 func main() {
@@ -19,6 +20,15 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	//Create class MailBox
+	Logger.Log("Mail create")
+	Mailbox := imap.Mail{}
+	Mailbox.Connect(config.Mail, config.Password)
+	Logger.Log("Mail connect")
+	defer Mailbox.Disconnect()
+	if Mailbox.CheckMessage() {
+		Mailbox.Fetch()
+	}
 
 	//Create class Bot
 	bot := tgbot.Bot{}
@@ -28,9 +38,9 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-
+	fmt.Println(Mailbox.GetFormaBody())
 	for true {
 
 	}
-	fmt.Println(config)
+
 }
