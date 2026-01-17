@@ -1,6 +1,7 @@
 package bot
 
 import (
+	"fmt"
 	Logger "gomod/internal/entities"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -8,6 +9,38 @@ import (
 
 type Bot struct {
 	bot *tgbotapi.BotAPI
+}
+
+func (b *Bot) GetFile(Html []byte) tgbotapi.FileBytes {
+	fileByte := tgbotapi.FileBytes{
+		Name:  "mail.html",
+		Bytes: Html,
+	}
+	return fileByte
+}
+
+func (b *Bot) Send(Text string,
+	ChatID int64,
+	Sender string,
+	Data string,
+	To string,
+	Bytes []byte) {
+
+	Logger.Log("send message")
+	text := fmt.Sprintf(`📂 <b>Детали сообщения:</b>
+• <b>Отправитель:</b> %s
+• <b>Получатель:</b> %s
+• <b>Дата отправки:</b> %s
+
+
+<blockquote><b>Отправленный текст:</b>
+%s </blockquote>`, Sender, To, Data, Text)
+	message := tgbotapi.NewMessage(ChatID, text)
+	message.ParseMode = "HTML"
+
+	filemessage := tgbotapi.NewDocument(ChatID, b.GetFile(Bytes))
+	b.bot.Send(message)
+	b.bot.Send(filemessage)
 }
 
 // Иницилизация бота + запуск слушателя событий

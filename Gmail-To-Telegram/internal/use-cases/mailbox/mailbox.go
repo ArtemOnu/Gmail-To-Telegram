@@ -6,17 +6,41 @@ import (
 	"strings"
 
 	"github.com/emersion/go-imap"
-	Imap "github.com/emersion/go-imap/client"
+	"github.com/emersion/go-imap/client"
 	"github.com/emersion/go-message/mail"
 	"golang.org/x/net/html"
 )
 
 type Mail struct {
-	client  *Imap.Client
+	client  *client.Client
 	mailbox *imap.MailboxStatus
 	envelop *imap.Envelope
 	uid     uint32
 	text    []byte
+}
+
+func (m *Mail) MailUpdate() <-chan string {
+	updates := make(chan client.Update, 10)
+	resultchan := make(chan string, 5)
+	m.client.Updates = updates
+
+	go func() {
+		for {
+			stop := make(chan struct{})
+			idleDone := make(chan error, 1)
+
+			go func() {
+				idleDone <- m.client.Idle(stop, nil)
+			}()
+
+			<-updates
+			close(stop)
+			<-idleDone
+			text := m.Fetch()
+			resultchan <- text
+		}
+	}()
+	return resultchan
 }
 
 // Read the contents
@@ -34,7 +58,7 @@ func (m *Mail) reader(r imap.Literal) {
 }
 
 // Processing the letter
-func (m *Mail) Fetch() {
+func (m *Mail) Fetch() string {
 	seq := new(imap.SeqSet)
 	seq.AddNum(m.mailbox.Messages)
 	var section imap.BodySectionName
@@ -51,7 +75,6 @@ func (m *Mail) Fetch() {
 	go func() {
 		done <- m.client.Fetch(seq, items, messages)
 	}()
-
 	msg := <-messages
 	m.uid = msg.Uid
 	err := <-done
@@ -60,7 +83,13 @@ func (m *Mail) Fetch() {
 	}
 
 	m.envelop = msg.Envelope
+	m.envelop.Date = msg.Envelope.Date
 	m.reader(msg.GetBody(&section))
+	str, err := m.GetFormaBody()
+	if err == nil {
+		return str
+	}
+	return ""
 }
 
 func (m *Mail) Disconnect() {
@@ -77,7 +106,7 @@ func (m *Mail) seelect() error {
 
 func (m *Mail) Connect(mail string, token string) error {
 	var err error
-	m.client, err = Imap.DialTLS("imap.mail.ru:993", nil)
+	m.client, err = client.DialTLS("imap.mail.ru:993", nil)
 	if err == nil {
 		err = m.client.Login(mail, token)
 		if err == nil {

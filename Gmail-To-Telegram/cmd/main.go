@@ -6,6 +6,7 @@ import (
 	Logger "gomod/internal/entities"
 	tgbot "gomod/internal/use-cases"
 	imap "gomod/internal/use-cases/mailbox"
+	"time"
 )
 
 func main() {
@@ -26,9 +27,7 @@ func main() {
 	Mailbox.Connect(config.Mail, config.Password)
 	Logger.Log("Mail connect")
 	defer Mailbox.Disconnect()
-	if Mailbox.CheckMessage() {
-		Mailbox.Fetch()
-	}
+	results := Mailbox.MailUpdate()
 
 	//Create class Bot
 	bot := tgbot.Bot{}
@@ -38,9 +37,10 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(Mailbox.GetFormaBody())
-	for true {
 
+	for result := range results {
+		time.Sleep(time.Second * 2)
+		Logger.Log("new message")
+		bot.Send(result, config.ChatID, Mailbox.GetAuthor(), Mailbox.GetDate(), Mailbox.GetBox(), Mailbox.GetBody())
 	}
-
 }
