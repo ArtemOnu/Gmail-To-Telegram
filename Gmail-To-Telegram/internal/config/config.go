@@ -10,10 +10,11 @@ type Config struct {
 	ChatID   int64  `json:"Chat-ID"`
 	Mail     string `json:"Mail-addres"`
 	Password string `json:"Password"`
+	Host     string `json:"Host"`
 }
 
-func GetConfig(input any) error {
-	read, err := os.ReadFile("../../configArtemka.json")
+func GetConfig(input any, addres string) error {
+	read, err := os.ReadFile(addres)
 	if err != nil {
 		return err
 	}

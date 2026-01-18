@@ -23,20 +23,24 @@ func (m *Mail) MailUpdate() <-chan string {
 	updates := make(chan client.Update, 10)
 	resultchan := make(chan string, 5)
 	m.client.Updates = updates
+	log.Log("mail update")
 
 	go func() {
 		for {
 			stop := make(chan struct{})
+			log.Log("stop")
 			idleDone := make(chan error, 1)
-
+			log.Log("func")
 			go func() {
 				idleDone <- m.client.Idle(stop, nil)
 			}()
-
+			log.Log("close")
 			<-updates
 			close(stop)
 			<-idleDone
+			log.Log("Fetch")
 			text := m.Fetch()
+			log.Log("return")
 			resultchan <- text
 		}
 	}()
@@ -104,7 +108,7 @@ func (m *Mail) seelect() error {
 	return err
 }
 
-func (m *Mail) Connect(mail string, token string) error {
+func (m *Mail) Connect(mail string, token string, hostname string) error {
 	var err error
 	m.client, err = client.DialTLS("imap.mail.ru:993", nil)
 	if err == nil {
